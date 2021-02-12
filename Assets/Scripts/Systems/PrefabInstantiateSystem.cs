@@ -1,30 +1,19 @@
-using Entitas;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Transforms;
+using Unity.Entities;
 
-public class PrefabInstantiateSystem : ReactiveSystem<GameEntity>
+public class PrefabInstantiateSystem : ComponentSystem
 {
-    Contexts contexts;
-
-    public PrefabInstantiateSystem(Contexts contexts)
-        : base(contexts.game)
+    protected override void OnUpdate()
     {
-        this.contexts = contexts;
-    }
-
-    protected override ICollector<GameEntity> GetTrigger(IContext<GameEntity> context)
-    {
-        return context.CreateCollector(GameMatcher.Prefab);
-    }
-
-    protected override bool Filter(GameEntity entity)
-    {
-        return entity.hasPrefab && !entity.hasView;
-    }
-
-    protected override void Execute(List<GameEntity> entities)
-    {
-        foreach (var e in entities)
-            e.AddView(GameObject.Instantiate(e.prefab.prefab));
+        Entities.WithNone<ViewComponent>().ForEach(
+            (Entity entity, ref PrefabComponent prefabComponent, ref Translation translation, ref Rotation rotation) => {
+                var instantiatedPrefab = EntityManager.Instantiate(prefabComponent.prefab);
+                EntityManager.SetComponentData<Translation>(instantiatedPrefab, translation);
+                EntityManager.SetComponentData<Rotation>(instantiatedPrefab, rotation);
+                EntityManager.AddComponentData<ViewComponent>(entity, new ViewComponent{ entity = instantiatedPrefab });
+            });
     }
 }

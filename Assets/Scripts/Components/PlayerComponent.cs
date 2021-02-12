@@ -1,5 +1,6 @@
-using Entitas;
+using Unity.Entities;
 
-public class PlayerComponent : IComponent
+[GenerateAuthoringComponent]
+public struct PlayerComponent : IComponentData
 {
 }

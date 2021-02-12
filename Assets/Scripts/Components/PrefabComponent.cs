@@ -1,7 +1,10 @@
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using Entitas;
+using Unity.Entities;
 
-public class PrefabComponent : IComponent
+[GenerateAuthoringComponent]
+public struct PrefabComponent : IComponentData
 {
-    public GameObject prefab;
+    public Entity prefab;
 }

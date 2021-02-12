@@ -1,6 +1,10 @@
-using Entitas;
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using Unity.Entities;
 
-public class HealthComponent : IComponent
+[GenerateAuthoringComponent]
+public struct HealthComponent : IComponentData
 {
     public float value;
 }

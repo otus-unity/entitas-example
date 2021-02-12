@@ -1,27 +1,24 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Entitas;
+using Unity.Entities;
 
-public class DeathSystem : IExecuteSystem
+public class DeathSystem : ComponentSystem
 {
-    IGroup<GameEntity> entities;
-    List<Entity> deadEntities = new List<Entity>();
+    EndFixedStepSimulationEntityCommandBufferSystem commandBufferSystem;
 
-    public DeathSystem(Contexts contexts)
+    protected override void OnCreate()
     {
-        entities = contexts.game.GetGroup(GameMatcher.Health);
+        base.OnCreate();
+        commandBufferSystem = World.GetOrCreateSystem<EndFixedStepSimulationEntityCommandBufferSystem>();
     }
 
-    public void Execute()
+    protected override void OnUpdate()
     {
-        deadEntities.Clear();
-        foreach (var e in entities) {
-            if (e.health.value <= 0)
-                deadEntities.Add(e);
-        }
-
-        foreach (var e in deadEntities)
-            e.Destroy();
+        var commandBuffer = commandBufferSystem.CreateCommandBuffer();
+        Entities.ForEach((Entity entity, ref HealthComponent health) => {
+                if (health.value <= 0)
+                    commandBuffer.DestroyEntity(entity);
+            });
     }
 }

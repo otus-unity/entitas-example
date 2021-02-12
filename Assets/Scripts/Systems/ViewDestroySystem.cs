@@ -1,6 +1,7 @@
 using Entitas;
 using UnityEngine;
 
+/*
 public class ViewDestroySystem : IInitializeSystem, ITearDownSystem
 {
     IGroup<GameEntity> group;
@@ -26,3 +27,4 @@ public class ViewDestroySystem : IInitializeSystem, ITearDownSystem
         GameObject.Destroy(view.gameObject);
     }
 }
+*/

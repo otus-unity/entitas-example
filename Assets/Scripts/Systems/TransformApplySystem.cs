@@ -1,43 +1,19 @@
-using Entitas;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Transforms;
+using Unity.Entities;
 
-public class TransformApplySystem : ReactiveSystem<GameEntity>
+public class TransformApplySystem : ComponentSystem
 {
-    Contexts contexts;
-
-    public TransformApplySystem(Contexts contexts)
-        : base(contexts.game)
+    protected override void OnUpdate()
     {
-        this.contexts = contexts;
-    }
+        Entities.ForEach((ref ViewComponent view, ref Translation translation) => {
+                EntityManager.SetComponentData<Translation>(view.entity, translation);
+            });
 
-    protected override ICollector<GameEntity> GetTrigger(IContext<GameEntity> context)
-    {
-        return new Collector<GameEntity>(
-            new [] {
-                context.GetGroup(GameMatcher.AnyOf(GameMatcher.Position, GameMatcher.Rotation)),
-                context.GetGroup(GameMatcher.View),
-            }, new [] {
-                GroupEvent.Added,
-                GroupEvent.Added,
-            }
-        );
-    }
-
-    protected override bool Filter(GameEntity entity)
-    {
-        return entity.hasView;
-    }
-
-    protected override void Execute(List<GameEntity> entities)
-    {
-        foreach (var e in entities) {
-            var t = e.view.gameObject.transform;
-            if (e.hasPosition)
-                t.position = e.position.value;
-            if (e.hasRotation)
-                t.rotation = Quaternion.Euler(0.0f, 0.0f, e.rotation.angle);
-        }
+        Entities.ForEach((ref ViewComponent view, ref Rotation rotation) => {
+                EntityManager.SetComponentData<Rotation>(view.entity, rotation);
+            });
     }
 }

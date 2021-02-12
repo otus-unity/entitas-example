@@ -3,6 +3,7 @@ using Entitas;
 
 public class GameController : MonoBehaviour
 {
+/*
     Systems systems;
     public GameObject shotPrefab;
 
@@ -33,4 +34,5 @@ public class GameController : MonoBehaviour
         systems.Execute();
         systems.Cleanup();
     }
+*/
 }

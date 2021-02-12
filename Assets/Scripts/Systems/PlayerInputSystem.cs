@@ -1,68 +1,61 @@
-using Entitas;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
+using Unity.Transforms;
+using Unity.Mathematics;
+using Unity.Entities;
 
-public class PlayerInputSystem : IExecuteSystem
+public class PlayerInputSystem : ComponentSystem
 {
-    const float MoveSpeed = 10.0f;
-    const float RotateSpeed = 120.0f;
-    const float ShotSpeed = 20.0f;
-
-    Contexts contexts;
-    IGroup<GameEntity> entities;
-
-    public PlayerInputSystem(Contexts contexts)
+    protected override void OnUpdate()
     {
-        this.contexts = contexts;
-        entities = contexts.game.GetGroup(GameMatcher.Player);
-    }
+        Entities.ForEach((Entity entity, ref PlayerComponent player, ref Translation translation, ref Rotation rotation) => {
+                float positionDelta = 0.0f;
+                if (Input.GetKey(KeyCode.W))
+                    positionDelta += 1.0f;
+                if (Input.GetKey(KeyCode.S))
+                    positionDelta -= 1.0f;
 
-    public void Execute()
-    {
-        foreach (var e in entities) {
-            // position
+                if (!Mathf.Approximately(positionDelta, 0.0f)) {
+                    var data = new ForwardMovementComponent{ speed = 10.0f * positionDelta };
+                    if (EntityManager.HasComponent<ForwardMovementComponent>(entity))
+                        EntityManager.SetComponentData<ForwardMovementComponent>(entity, data);
+                    else
+                        EntityManager.AddComponentData<ForwardMovementComponent>(entity, data);
+                } else {
+                    if (EntityManager.HasComponent<ForwardMovementComponent>(entity))
+                        EntityManager.RemoveComponent<ForwardMovementComponent>(entity);
+                }
 
-            float positionDelta = 0.0f;
-            if (Input.GetKey(KeyCode.W))
-                positionDelta += 1.0f;
-            if (Input.GetKey(KeyCode.S))
-                positionDelta -= 1.0f;
+                // rotation
 
-            if (!Mathf.Approximately(positionDelta, 0.0f)) {
-                if (e.hasForwardMovement)
-                    e.ReplaceForwardMovement(MoveSpeed * positionDelta);
-                else
-                    e.AddForwardMovement(MoveSpeed * positionDelta);
-            } else {
-                if (e.hasForwardMovement)
-                    e.RemoveForwardMovement();
-            }
+                float rotationDelta = 0.0f;
+                if (Input.GetKey(KeyCode.A))
+                    rotationDelta += 1.0f;
+                if (Input.GetKey(KeyCode.D))
+                    rotationDelta -= 1.0f;
 
-            // rotation
+                if (!Mathf.Approximately(rotationDelta, 0.0f)) {
+                    float angle = rotationDelta * math.radians(120.0f) * Time.DeltaTime;
+                    rotation.Value = math.mul(rotation.Value, quaternion.AxisAngle(new float3(0, 0, 1), angle));
+                }
 
-            float rotationDelta = 0.0f;
-            if (Input.GetKey(KeyCode.A))
-                rotationDelta += 1.0f;
-            if (Input.GetKey(KeyCode.D))
-                rotationDelta -= 1.0f;
+                // shooting
 
-            if (!Mathf.Approximately(rotationDelta, 0.0f))
-                e.ReplaceRotation(e.rotation.angle + rotationDelta * RotateSpeed * Time.deltaTime);
+                if (Input.GetMouseButtonDown(0)) {
+                    Entity prefabEntity = default;
+                    Entities.ForEach((GlobalsComponent component) => {
+                            prefabEntity = component.shotPrefab;
+                        });
 
-            // shooting
-
-            if (Input.GetMouseButtonDown(0)) {
-                var angle = e.rotation.angle * Mathf.Deg2Rad;
-                var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-
-                var entity = contexts.game.CreateEntity();
-                entity.isShot = true;
-                entity.AddPosition(e.position.value + dir);
-                entity.AddRotation(e.rotation.angle);
-                entity.AddPrefab(contexts.game.globals.shotPrefab);
-                entity.AddForwardMovement(ShotSpeed);
-                entity.AddHealth(1.0f);
-            }
-        }
+                    var dir = math.mul(rotation.Value, new float3(1, 0, 0));
+                    var shotEntity = EntityManager.CreateEntity();
+                    EntityManager.AddComponentData<Translation>(shotEntity, new Translation{ Value = translation.Value + dir });
+                    EntityManager.AddComponentData<Rotation>(shotEntity, new Rotation{ Value = rotation.Value });
+                    EntityManager.AddComponentData<PrefabComponent>(shotEntity, new PrefabComponent{ prefab = prefabEntity });
+                    EntityManager.AddComponentData<ShotComponent>(shotEntity, new ShotComponent{});
+                    EntityManager.AddComponentData<ForwardMovementComponent>(shotEntity, new ForwardMovementComponent{ speed = 20.0f });
+                    EntityManager.AddComponentData<HealthComponent>(shotEntity, new HealthComponent{ value = 1.0f });
+                }
+            });
     }
 }

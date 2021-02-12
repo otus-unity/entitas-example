@@ -1,29 +1,31 @@
-using Entitas;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Mathematics;
+using Unity.Entities;
+using Unity.Transforms;
 
-public class ShotCollisionSystem : IExecuteSystem
+public class ShotCollisionSystem : ComponentSystem
 {
-    IGroup<GameEntity> shotEntities;
-    IGroup<GameEntity> enemyEntities;
+    EndFixedStepSimulationEntityCommandBufferSystem commandBufferSystem;
 
-    public ShotCollisionSystem(Contexts contexts)
+    protected override void OnCreate()
     {
-        shotEntities = contexts.game.GetGroup(GameMatcher.Shot);
-        enemyEntities = contexts.game.GetGroup(GameMatcher.AllOf(GameMatcher.Enemy, GameMatcher.Health));
+        base.OnCreate();
+        commandBufferSystem = World.GetOrCreateSystem<EndFixedStepSimulationEntityCommandBufferSystem>();
     }
 
-    public void Execute()
+    protected override void OnUpdate()
     {
-        foreach (var shot in shotEntities) {
-            var shotPosition = shot.position.value;
-            foreach (var enemy in enemyEntities) {
-                var enemyPosition = enemy.position.value;
-                if ((enemyPosition - shotPosition).sqrMagnitude < 0.7f) {
-                    enemy.ReplaceHealth(enemy.health.value - 1.0f);
-                    shot.ReplaceHealth(0.0f);
+        var commandBuffer = commandBufferSystem.CreateCommandBuffer();
+        Entities.ForEach((Entity enemyEntity, ref EnemyComponent enemy, ref Translation enemyTranslation, ref HealthComponent enemyHealth) => {
+            float3 enemyPosition = enemyTranslation.Value;
+            float health = enemyHealth.value;
+            Entities.ForEach((Entity shotEntity, ref ShotComponent shot, ref Translation shotTranslation) => {
+                if (math.lengthsq(enemyPosition - shotTranslation.Value) < 0.7f) {
+                    commandBuffer.SetComponent<HealthComponent>(enemyEntity, new HealthComponent{ value = health - 1.0f });
+                    commandBuffer.SetComponent<HealthComponent>(shotEntity, new HealthComponent{ value = 0.0f });
                 }
-            }
-        }
+            });
+        });
     }
 }
